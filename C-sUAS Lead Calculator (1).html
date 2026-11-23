@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C-sUAS Small Arms Lead Calculator — British Army L85A3 SA80</title>
+  <style>
+    /* CSS Reset & Tactical Theme Variables */
+    :root {
+      --bg: #0c0f12;
+      --card: #141a20;
+      --card-hover: #1a232c;
+      --border: #222d37;
+      --border-light: #334155;
+      --olive: #4b5e40;
+      --olive-dark: #2a3824;
+      --accent: #22c55e;
+      --amber: #f59e0b;
+      --cyan: #06b6d4;
+      --red: #ef4444;
+      --muted: #64748b;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* Container */
+    .app-container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge-olive {
+      background: var(--olive-dark);
+      color: var(--accent);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-dark {
+      background: #1e293b;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      font-family: monospace;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .header-telemetry {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--card);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: monospace;
+    }
+
+    .telemetry-item {
+      background: #080b0e;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .telemetry-label {
+      font-size: 9px;
+      color: var(--muted);
+      display: block;
+    }
+
+    .telemetry-val {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* Layout Grid */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 1024px) {
+      .grid-layout {
+        grid-template-columns: 5fr 7fr;
+      }
+    }
+
+    /* Card Panels */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Weapon Selector Grid */
+    .weapon-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (min-width: 480px) {
+      .weapon-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .weapon-btn {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: left;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .weapon-btn:hover {
+      border-color: var(--border-light);
+      background: var(--card-hover);
+    }
+
+    .weapon-btn.active {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .weapon-btn .w-name {
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .weapon-btn .w-optic {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .weapon-btn .w-spec {
+      font-size: 9px;
+      font-family: monospace;
+      margin-top: 6px;
+    }
+
+    /* Controls & Sliders */
+    .control-group {
+      margin-top: 16px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .slider-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .slider-val {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--amber);
+    }
+
+    input[type=range] {
+      width: 100%;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid #0c0f12;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    /* Preset Buttons */
+    .presets-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-action:hover {
+      background: var(--border-light);
+    }
+
+    .btn-action.active {
+      background: var(--olive);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-action-primary {
+      background: var(--olive);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-action-primary:hover {
+      background: #3c4c33;
+    }
+
+    /* Telemetry Display Cards */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .t-card {
+      background: #080b0e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .t-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .t-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      font-family: monospace;
+      line-height: 1.2;
+      margin-top: 4px;
+    }
+
+    .t-sub {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Warning Overlay */
+    .warning-banner {
+      background: rgba(127, 29, 29, 0.9);
+      border: 1px solid var(--red);
+      color: #fecaca;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .warning-banner.hidden {
+      display: none;
+    }
+
+    /* Canvas Visualizer HUD */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      background: #080b0e;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Canvas HUD Overlay text */
+    .hud-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      pointer-events: none;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--accent);
+      background: rgba(8, 11, 14, 0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .hud-overlay-right {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      pointer-events: none;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--amber);
+      background: rgba(8, 11, 14, 0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    /* Reticle Legend Bar */
+    .reticle-legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 11px;
+    }
+
+    @media (min-width: 640px) {
+      .reticle-legend {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .legend-box {
+      background: #080b0e;
+      border: 1px solid var(--border);
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .legend-box .lbl {
+      font-size: 9px;
+      color: var(--muted);
+      display: block;
+    }
+
+    .legend-box .val {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    /* Dynamic Matrix Table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: monospace;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #080b0e;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .table-input-speed {
+      background: #0f172a;
+      border: 1px solid var(--border-light);
+      color: var(--amber);
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 12px;
+      width: 60px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .table-select-weapon {
+      background: #0f172a;
+      border: 1px solid var(--border-light);
+      color: var(--accent);
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .btn-remove {
+      background: transparent;
+      border: none;
+      color: var(--red);
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .btn-remove:hover {
+      color: #fca5a5;
+    }
+
+    /* Doctrine Cards Bottom */
+    .doctrine-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 768px) {
+      .doctrine-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .doctrine-card {
+      background: #080b0e;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .doctrine-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--olive-dark);
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      margin-right: 6px;
+    }
+
+    .doctrine-head {
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .doctrine-body {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header>
+      <div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="badge badge-olive">C-sUAS TACTICAL DRILL</span>
+          <span class="badge badge-dark">NATO STANDARDS — OFFLINE READY</span>
+        </div>
+        <h1>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+            <circle cx="12" cy="12" r="9" stroke-dasharray="4 2"/>
+            <path d="M12 3v3m0 12v3m9-12h-3M6 12H3m9-4a4 4 0 100 8 4 4 0 000-8z"/>
+          </svg>
+          British Army C-sUAS Small Arms Lead Calculator
+        </h1>
+        <p style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">
+          Dynamic ballistic lead computer & optic hold visualizer for SA80 (L85A3), GPMG (L7A2), & Shotgun (L128A1)
+        </p>
+      </div>
+
+      <div class="header-telemetry">
+        <div class="telemetry-item">
+          <span class="telemetry-label">MUZZLE VELOCITY</span>
+          <span id="badge-velocity" class="telemetry-val" style="color: var(--accent)">920 m/s</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">CALIBRE</span>
+          <span id="badge-calibre" class="telemetry-val" style="color: var(--amber)">5.56×45mm L2A2</span>
+        </div>
+        <button id="copy-btn" onclick="copyLeadData()" class="btn-action btn-action-primary" style="display: flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+          Copy Data
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <div class="grid-layout">
+
+      <!-- LEFT: CONTROLS & TELEMETRY -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Weapon System Selection -->
+        <div class="card">
+          <div class="card-title">
+            <span>1. Weapon System & Sight Setup</span>
+            <span style="color: var(--muted); font-size: 9px;">Standard Issue</span>
+          </div>
+          <div class="weapon-grid">
+            <button onclick="setWeapon('lds')" id="opt-lds" class="weapon-btn active">
+              <div class="w-name">L85A3 + LDS</div>
+              <div class="w-optic">ELCAN 4x Optic</div>
+              <div class="w-spec" style="color: var(--accent);">5.56mm @ 920m/s</div>
+            </button>
+            <button onclick="setWeapon('cqb')" id="opt-cqb" class="weapon-btn">
+              <div class="w-name">Shield CQB</div>
+              <div class="w-optic">1x Red Dot</div>
+              <div class="w-spec" style="color: var(--accent);">Wide 1x FOV</div>
+            </button>
+            <button onclick="setWeapon('gpmg')" id="opt-gpmg" class="weapon-btn">
+              <div class="w-name">L7A2 GPMG</div>
+              <div class="w-optic">Iron / C2A1</div>
+              <div class="w-spec" style="color: var(--amber);">7.62mm @ 838m/s</div>
+            </button>
+            <button onclick="setWeapon('shotgun')" id="opt-shotgun" class="weapon-btn">
+              <div class="w-name">L128A1 12G</div>
+              <div class="w-optic">Combat Shotgun</div>
+              <div class="w-spec" style="color: var(--cyan);">12G @ 400m/s</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Target Controls -->
+        <div class="card">
+          <div class="card-title">
+            <span>2. Target Dynamics & Profile</span>
+            <span style="color: var(--muted); font-size: 9px;" id="target-vector-summary">80 mph @ 90°</span>
+          </div>
+
+          <!-- Speed Slider -->
+          <div class="control-group">
+            <div class="slider-header">
+              <span class="slider-label">Drone Speed (Airspeed)</span>
+              <span class="slider-val"><span id="val-speed">80</span> mph (<span id="val-speed-ms">35.8</span> m/s)</span>
+            </div>
+            <input type="range" id="speed-slider" min="15" max="120" value="80" step="5" oninput="updateCalculations()">
+            <div class="presets-row">
+              <button onclick="setPresetSpeed(35)" class="btn-action">35 mph (Recon)</button>
+              <button onclick="setPresetSpeed(55)" class="btn-action">55 mph (Cruising)</button>
+              <button onclick="setPresetSpeed(80)" class="btn-action active">80 mph (FPV)</button>
+              <button onclick="setPresetSpeed(105)" class="btn-action">105 mph (High-Speed)</button>
+            </div>
+          </div>
+
+          <!-- Range Slider -->
+          <div class="control-group">
+            <div class="slider-header">
+              <span class="slider-label">Engagement Range</span>
+              <span class="slider-val"><span id="val-range">100</span> metres</span>
+            </div>
+            <input type="range" id="range-slider" min="20" max="300" value="100" step="5" oninput="updateCalculations()">
+            <div class="presets-row">
+              <button onclick="setPresetRange(25)" class="btn-action">25m (Shotgun)</button>
+              <button onclick="setPresetRange(50)" class="btn-action">50m (Point-Blank)</button>
+              <button onclick="setPresetRange(100)" class="btn-action active">100m (Standard)</button>
+              <button onclick="setPresetRange(150)" class="btn-action">150m (Far)</button>
+              <button onclick="setPresetRange(200)" class="btn-action">200m (Max)</button>
+            </div>
+          </div>
+
+          <!-- Angle Slider -->
+          <div class="control-group">
+            <div class="slider-header">
+              <span class="slider-label">Approach Angle</span>
+              <span class="slider-val"><span id="val-angle">90</span>° <span id="angle-desc" style="font-size: 10px; color: var(--muted);">(90° Full Broadside)</span></span>
+            </div>
+            <input type="range" id="angle-slider" min="0" max="90" value="90" step="5" oninput="updateCalculations()">
+            <div class="presets-row">
+              <button onclick="setPresetAngle(90)" class="btn-action active">90° Crossing</button>
+              <button onclick="setPresetAngle(45)" class="btn-action">45° Quartering</button>
+              <button onclick="setPresetAngle(0)" class="btn-action">0° Head-On</button>
+            </div>
+          </div>
+
+          <!-- Flight Direction -->
+          <div class="control-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px;">
+            <span class="slider-label">Flight Direction</span>
+            <div class="presets-row" style="margin-top: 0;">
+              <button onclick="setDirection('ltr')" id="dir-ltr" class="btn-action active">Left → Right</button>
+              <button onclick="setDirection('rtl')" id="dir-rtl" class="btn-action">Right → Left</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Telemetry Outputs -->
+        <div class="card">
+          <div class="card-title">
+            <span>3. Computed Firing Solution</span>
+            <span style="color: var(--accent); font-family: monospace; font-size: 10px;" id="quick-hold-text">Aim 4.1m ahead</span>
+          </div>
+
+          <div class="telemetry-grid">
+            <div class="t-card">
+              <span class="t-title">ANGULAR LEAD (MILS)</span>
+              <div class="t-value" id="out-mils" style="color: var(--accent);">41.1</div>
+              <div class="t-sub" id="out-moa">(141 MOA)</div>
+            </div>
+
+            <div class="t-card">
+              <span class="t-title">PHYSICAL LEAD (METRES)</span>
+              <div class="t-value" id="out-meters" style="color: var(--amber);">4.1</div>
+              <div class="t-sub" id="out-feet">(13.5 feet ahead)</div>
+            </div>
+
+            <div class="t-card">
+              <span class="t-title">TIME OF FLIGHT (ToF)</span>
+              <div class="t-value" id="out-tof" style="color: #fff; font-size: 1.4rem;">115 ms</div>
+              <div class="t-sub">Bullet travel lag</div>
+            </div>
+
+            <div class="t-card">
+              <span class="t-title" id="sec-telemetry-label">CROSS-TRACK SPEED</span>
+              <div class="t-value" id="out-vperp" style="color: #fff; font-size: 1.4rem;">35.8 m/s</div>
+              <div class="t-sub" id="sec-telemetry-sub">Lateral speed component</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: VISUALIZER & DYNAMIC MATRIX -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Reticle Sight Visualizer -->
+        <div class="card">
+          <div class="card-title">
+            <span>Optic Sight Picture & Reticle Hold Visualizer</span>
+            <div style="display: flex; gap: 6px;">
+              <button onclick="toggleAnimate()" id="btn-animate" class="btn-action">Simulate Flight</button>
+            </div>
+          </div>
+
+          <!-- FOV Warning Banner -->
+          <div id="fov-warning" class="warning-banner hidden">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <span id="warning-text">TARGET LEAD EXCEEDS OPTIC FOV CENTER!</span>
+            </div>
+            <span class="badge badge-dark" id="warning-tag">HIGH DEFLECTION</span>
+          </div>
+
+          <!-- Canvas Display -->
+          <div class="canvas-container">
+            <div class="hud-overlay">
+              <span id="hud-optic-name">L85A3 + LDS 4x</span> | FOV: <span id="hud-fov-mils">115 Mils</span>
+            </div>
+            <div class="hud-overlay-right">
+              RANGE: <span id="hud-range">100m</span> | HOLD: <span id="hud-hold-mils">41 Mils</span>
+            </div>
+            <canvas id="sightCanvas"></canvas>
+          </div>
+
+          <!-- Reticle Legend -->
+          <div class="reticle-legend">
+            <div class="legend-box">
+              <span class="lbl">BARREL AIM POINT</span>
+              <span class="val" style="color: var(--accent);">Center Reticle</span>
+            </div>
+            <div class="legend-box">
+              <span class="lbl">TARGET DRONE POS</span>
+              <span class="val" style="color: var(--amber);">Lead Vector</span>
+            </div>
+            <div class="legend-box">
+              <span class="lbl" id="legend-box3-title">100m STADIA BAR</span>
+              <span class="val" id="legend-box3-val">16 Mils Width</span>
+            </div>
+            <div class="legend-box">
+              <span class="lbl">MIL TICK SPACING</span>
+              <span class="val">10 Mils / Mark</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Tactical Matrix Table -->
+        <div class="card">
+          <div class="card-title">
+            <span>Tactical Engagement Lead Reference Matrix</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="matrix-weapon-select" onchange="onMatrixWeaponChange(this.value)" class="table-select-weapon">
+                <option value="lds">L85A3 SA80 (5.56mm)</option>
+                <option value="gpmg">L7A2 GPMG (7.62mm)</option>
+                <option value="shotgun">L128A1 Shotgun (12G)</option>
+              </select>
+              <button onclick="addMatrixSpeedRow()" class="btn-action">+ Add Speed</button>
+            </div>
+          </div>
+
+          <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">
+            Required lead distance in <b style="color: var(--amber)">metres</b> (<span style="color: var(--accent)">mils</span>) for selected <span id="matrix-angle-label" style="color: #fff; font-weight: 700;">90° crossing angle</span>. You can edit the speeds in the headers below directly!
+          </p>
+
+          <div class="table-container">
+            <table id="matrix-table">
+              <thead>
+                <tr id="matrix-header-row">
+                  <th>Range \ Airspeed</th>
+                  <!-- Dynamic speed header cells inserted by JS -->
+                </tr>
+              </thead>
+              <tbody id="matrix-body">
+                <!-- Dynamic range rows inserted by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- BOTTOM DOCTRINE & AIDE-MEMOIRE -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">
+        <span>British Army C-sUAS Small Arms & Shotgun Engagement Doctrine</span>
+      </div>
+
+      <div class="doctrine-grid">
+        <div class="doctrine-card">
+          <div class="doctrine-head">
+            <span class="doctrine-num">1</span> Point-of-Aim Ambush
+          </div>
+          <div class="doctrine-body">
+            Do NOT attempt to fluidly track an 80+ mph FPV drone. Pick a spatial reference along its flight path, hold fixed lead ahead, and fire rapid bursts as it enters the beaten zone.
+          </div>
+        </div>
+
+        <div class="doctrine-card">
+          <div class="doctrine-head">
+            <span class="doctrine-num">2</span> Section Volume Box
+          </div>
+          <div class="doctrine-body">
+            Single-rifle hit probability is under 5%. Section Commanders must issue Fire Control Orders creating a 5m × 5m airspace box ahead of incoming targets for synchronized rapid fire.
+          </div>
+        </div>
+
+        <div class="doctrine-card">
+          <div class="doctrine-head">
+            <span class="doctrine-num">3</span> Shotgun Envelope (&lt;50m)
+          </div>
+          <div class="doctrine-body">
+            L128A1 12-Gauge is highly effective under 50m for trench point defence. Shot spread (~0.75m–1.5m) forgives lead errors. Beyond 50m pellet pattern density degrades rapidly.
+          </div>
+        </div>
+
+        <div class="doctrine-card">
+          <div class="doctrine-head">
+            <span class="doctrine-num">4</span> Shotgun Swing-Through
+          </div>
+          <div class="doctrine-body">
+            Unlike rifle ambush holds, 12-gauge engagements under 50m use a swing-through technique: insert sight behind target, sweep forward past the nose, pull trigger on lead point while continuing swing.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JAVASCRIPT ENGINE -->
+  <script>
+    // --- Ballistic Engine State ---
+    const state = {
+      weapon: 'lds', // 'lds', 'cqb', 'gpmg', 'shotgun'
+      speedMph: 80,
+      rangeMeters: 100,
+      angleDeg: 90,
+      direction: 'ltr',
+      animating: false,
+      animProgress: 0,
+      matrixSpeeds: [35, 55, 80, 105],
+      matrixWeapon: 'lds'
+    };
+
+    // Weapon Configuration Profiles
+    const weapons = {
+      lds: {
+        name: 'L85A3 SA80 + LDS 4x',
+        muzzleVel: 920, // m/s
+        calibre: '5.56×45mm NATO L2A2',
+        bc: 0.304,
+        fovMils: 115,
+        magnification: 4,
+        reticleType: 'lds',
+        isShotgun: false
+      },
+      cqb: {
+        name: 'L85A3 SA80 + Shield CQB (1x)',
+        muzzleVel: 920,
+        calibre: '5.56×45mm NATO L2A2',
+        bc: 0.304,
+        fovMils: 400,
+        magnification: 1,
+        reticleType: 'reddot',
+        isShotgun: false
+      },
+      gpmg: {
+        name: 'L7A2 GPMG (7.62mm)',
+        muzzleVel: 838, // m/s
+        calibre: '7.62×51mm NATO L44A1',
+        bc: 0.393,
+        fovMils: 250,
+        magnification: 1,
+        reticleType: 'gpmg',
+        isShotgun: false
+      },
+      shotgun: {
+        name: 'L128A1 Combat Shotgun (12G)',
+        muzzleVel: 400, // m/s
+        calibre: '12G Heavy Tungsten/Birdshot',
+        bc: 0.055,
+        fovMils: 450,
+        magnification: 1,
+        reticleType: 'shotgun',
+        isShotgun: true
+      }
+    };
+
+    // Ballistic Time of Flight (seconds)
+    function calculateToF(rangeMeters, muzzleVel, bc, isShotgun = false) {
+      if (isShotgun) {
+        const k = 0.0075;
+        const avgVel = muzzleVel / (1 + (k * rangeMeters * 0.7));
+        return rangeMeters / avgVel;
+      }
+
+      const k = (muzzleVel > 900) ? 0.00075 : 0.00062;
+      const k2 = (muzzleVel > 900) ? 0.0000015 : 0.0000012;
+      const dragFactor = 1 + (k * rangeMeters) + (k2 * rangeMeters * rangeMeters);
+      return (rangeMeters / muzzleVel) * dragFactor;
+    }
+
+    // Shot Pattern Spread for 12G (Metres)
+    function calculateShotSpread(rangeMeters) {
+      return 0.15 + (rangeMeters * 0.027);
+    }
+
+    // Main Calculation Routine
+    function computeLead(wKey = state.weapon, rangeM = state.rangeMeters, speedM = state.speedMph, angleD = state.angleDeg) {
+      const currentWpn = weapons[wKey];
+      const tof = calculateToF(rangeM, currentWpn.muzzleVel, currentWpn.bc, currentWpn.isShotgun);
+      
+      const speedMs = speedM * 0.44704;
+      const angleRad = (angleD * Math.PI) / 180;
+      const vPerp = speedMs * Math.sin(angleRad);
+
+      const leadMeters = vPerp * tof;
+      const leadFeet = leadMeters * 3.28084;
+
+      const leadMils = (leadMeters / rangeM) * 1000;
+      const leadMOA = leadMils * 3.43775;
+
+      const spreadMeters = calculateShotSpread(rangeM);
+      const spreadMils = (spreadMeters / rangeM) * 1000;
+
+      return {
+        tofMs: Math.round(tof * 1000),
+        tofSec: tof,
+        speedMs: speedMs.toFixed(1),
+        vPerpMs: vPerp.toFixed(1),
+        leadMeters: leadMeters.toFixed(2),
+        leadFeet: leadFeet.toFixed(1),
+        leadMils: leadMils.toFixed(1),
+        leadMOA: Math.round(leadMOA),
+        rawMils: leadMils,
+        rawMeters: leadMeters,
+        spreadMeters: spreadMeters.toFixed(2),
+        spreadMils: spreadMils.toFixed(1),
+        isShotgun: currentWpn.isShotgun
+      };
+    }
+
+    // Update UI Elements
+    function updateCalculations() {
+      state.speedMph = parseFloat(document.getElementById('speed-slider').value);
+      state.rangeMeters = parseFloat(document.getElementById('range-slider').value);
+      state.angleDeg = parseFloat(document.getElementById('angle-slider').value);
+
+      document.getElementById('val-speed').innerText = state.speedMph;
+      document.getElementById('val-speed-ms').innerText = (state.speedMph * 0.44704).toFixed(1);
+
+      document.getElementById('val-range').innerText = state.rangeMeters;
+      document.getElementById('val-angle').innerText = state.angleDeg;
+
+      const angleDescEl = document.getElementById('angle-desc');
+      if (state.angleDeg === 90) angleDescEl.innerText = '(90° Full Broadside)';
+      else if (state.angleDeg === 0) angleDescEl.innerText = '(0° Direct Head-On / Diving)';
+      else angleDescEl.innerText = `(${state.angleDeg}° Angle)`;
+
+      document.getElementById('target-vector-summary').innerText = `${state.speedMph} mph @ ${state.angleDeg}°`;
+
+      const data = computeLead();
+
+      document.getElementById('out-mils').innerText = data.leadMils;
+      document.getElementById('out-moa').innerText = `(${data.leadMOA} MOA)`;
+      document.getElementById('out-meters').innerText = data.leadMeters;
+      document.getElementById('out-feet').innerText = `(${data.leadFeet} feet ahead)`;
+      document.getElementById('out-tof').innerText = `${data.tofMs} ms`;
+
+      const secLabel = document.getElementById('sec-telemetry-label');
+      const secVal = document.getElementById('out-vperp');
+      const secSub = document.getElementById('sec-telemetry-sub');
+
+      if (data.isShotgun) {
+        secLabel.innerText = "SHOT PATTERN DENSITY";
+        secVal.innerText = `${data.spreadMeters}m`;
+        secVal.style.color = "var(--cyan)";
+        secSub.innerText = `@ ${state.rangeMeters}m (~${data.spreadMils} Mils spread)`;
+      } else {
+        secLabel.innerText = "CROSS-TRACK SPEED";
+        secVal.innerText = `${data.vPerpMs} m/s`;
+        secVal.style.color = "#fff";
+        secSub.innerText = "Effective lateral speed";
+      }
+
+      document.getElementById('quick-hold-text').innerHTML = 
+        `Aim <b style="color:var(--amber)">${data.leadMeters}m (${data.leadMils} Mils)</b> ahead`;
+
+      document.getElementById('hud-hold-mils').innerText = `${data.leadMils} Mils`;
+      document.getElementById('hud-range').innerText = `${state.rangeMeters}m`;
+
+      const currentWpn = weapons[state.weapon];
+      const maxFovRadiusMils = currentWpn.fovMils / 2.2;
+      const fovWarningEl = document.getElementById('fov-warning');
+      const warningTextEl = document.getElementById('warning-text');
+      const warningTagEl = document.getElementById('warning-tag');
+
+      if (currentWpn.isShotgun && state.rangeMeters > 50) {
+        fovWarningEl.classList.remove('hidden');
+        warningTextEl.innerText = `RANGE (${state.rangeMeters}m) EXCEEDS 12G SHOTGUN EFFECTIVE ENVELOPE (MAX 50m)!`;
+        warningTagEl.innerText = "RANGE EXCEEDED";
+      } else if (data.rawMils > maxFovRadiusMils && state.weapon === 'lds') {
+        fovWarningEl.classList.remove('hidden');
+        warningTextEl.innerText = "TARGET LEAD EXCEEDS OPTIC FOV CENTER (~48 MIL LIMIT). SWITCH TO CQB RED DOT!";
+        warningTagEl.innerText = "HIGH DEFLECTION";
+      } else {
+        fovWarningEl.classList.add('hidden');
+      }
+
+      if (currentWpn.isShotgun) {
+        document.getElementById('legend-box3-title').innerText = "SHOT CLOUD DIA";
+        document.getElementById('legend-box3-val').innerText = `${data.spreadMeters}m Pattern`;
+      } else {
+        document.getElementById('legend-box3-title').innerText = "100m STADIA BAR";
+        document.getElementById('legend-box3-val').innerText = "16 Mils Width";
+      }
+
+      renderMatrixTable();
+      drawSightPicture(data);
+    }
+
+    // Set Weapon Function
+    function setWeapon(wpnKey) {
+      state.weapon = wpnKey;
+      ['lds', 'cqb', 'gpmg', 'shotgun'].forEach(k => {
+        const btn = document.getElementById(`opt-${k}`);
+        if (k === wpnKey) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      const wpn = weapons[wpnKey];
+      document.getElementById('badge-velocity').innerText = `${wpn.muzzleVel} m/s`;
+      document.getElementById('badge-calibre').innerText = wpn.calibre;
+      document.getElementById('hud-optic-name').innerText = wpn.name;
+      document.getElementById('hud-fov-mils').innerText = `${wpn.fovMils} Mils`;
+
+      document.getElementById('matrix-weapon-select').value = wpnKey;
+      state.matrixWeapon = wpnKey;
+
+      updateCalculations();
+    }
+
+    // Preset Controls
+    function setPresetSpeed(s) {
+      document.getElementById('speed-slider').value = s;
+      updateCalculations();
+    }
+
+    function setPresetRange(r) {
+      document.getElementById('range-slider').value = r;
+      updateCalculations();
+    }
+
+    function setPresetAngle(a) {
+      document.getElementById('angle-slider').value = a;
+      updateCalculations();
+    }
+
+    function setDirection(dir) {
+      state.direction = dir;
+      if (dir === 'ltr') {
+        document.getElementById('dir-ltr').classList.add('active');
+        document.getElementById('dir-rtl').classList.remove('active');
+      } else {
+        document.getElementById('dir-rtl').classList.add('active');
+        document.getElementById('dir-ltr').classList.remove('active');
+      }
+      updateCalculations();
+    }
+
+    // Interactive Matrix Table Management
+    function onMatrixWeaponChange(wKey) {
+      state.matrixWeapon = wKey;
+      renderMatrixTable();
+    }
+
+    function updateMatrixSpeed(index, val) {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        state.matrixSpeeds[index] = num;
+        renderMatrixTable();
+      }
+    }
+
+    function addMatrixSpeedRow() {
+      const lastSpeed = state.matrixSpeeds[state.matrixSpeeds.length - 1] || 80;
+      state.matrixSpeeds.push(lastSpeed + 20);
+      renderMatrixTable();
+    }
+
+    function removeMatrixSpeedRow(index) {
+      if (state.matrixSpeeds.length > 1) {
+        state.matrixSpeeds.splice(index, 1);
+        renderMatrixTable();
+      }
+    }
+
+    function renderMatrixTable() {
+      document.getElementById('matrix-angle-label').innerText = `${state.angleDeg}° angle`;
+
+      const headerRow = document.getElementById('matrix-header-row');
+      headerRow.innerHTML = `<th>Range \\ Airspeed</th>`;
+      
+      state.matrixSpeeds.forEach((s, idx) => {
+        headerRow.innerHTML += `
+          <th style="text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <input type="number" value="${s}" onchange="updateMatrixSpeed(${idx}, this.value)" class="table-input-speed">
+              <span style="font-size: 10px; color: var(--muted);">mph</span>
+              ${state.matrixSpeeds.length > 1 ? `<button onclick="removeMatrixSpeedRow(${idx})" class="btn-remove" title="Remove Speed Column">×</button>` : ''}
+            </div>
+          </th>`;
+      });
+
+      const tbody = document.getElementById('matrix-body');
+      tbody.innerHTML = '';
+
+      const ranges = [25, 50, 75, 100, 150, 200];
+      const curWpn = weapons[state.matrixWeapon];
+
+      ranges.forEach(r => {
+        const isCurrentRange = (r === state.rangeMeters);
+        const isShotgunOut = (curWpn.isShotgun && r > 50);
+
+        let rowHtml = `<tr style="${isCurrentRange ? 'background: rgba(34,197,94,0.1); font-weight: bold;' : ''} ${isShotgunOut ? 'opacity: 0.4;' : ''}">`;
+        rowHtml += `<td style="border-right: 1px solid var(--border);">
+                      ${isCurrentRange ? '<span style="color:var(--accent)">●</span> ' : ''}${r}m
+                      ${curWpn.isShotgun ? `<br><span style="font-size: 9px; color: var(--cyan);">(${calculateShotSpread(r).toFixed(1)}m cloud)</span>` : ''}
+                    </td>`;
+
+        state.matrixSpeeds.forEach(s => {
+          const data = computeLead(state.matrixWeapon, r, s, state.angleDeg);
+          const isSelectedCell = (r === state.rangeMeters && s === state.speedMph);
+
+          rowHtml += `<td style="text-align: center; ${isSelectedCell ? 'background: rgba(245,158,11,0.2); border: 1px solid var(--amber); border-radius: 4px;' : ''}">
+                        <span style="color: var(--amber); font-weight: 700;">${data.leadMeters}m</span>
+                        <br><span style="font-size: 10px; color: var(--accent);">(${Math.round(data.rawMils)} mils)</span>
+                      </td>`;
+        });
+
+        rowHtml += `</tr>`;
+        tbody.innerHTML += rowHtml;
+      });
+    }
+
+    // --- CANVAS RETICLE & FLIGHT RENDERER ---
+    function drawSightPicture(data) {
+      const canvas = document.getElementById('sightCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = rect.width;
+      const height = rect.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      ctx.fillStyle = '#080b0e';
+      ctx.fillRect(0, 0, width, height);
+
+      const wpn = weapons[state.weapon];
+      const fovRadiusPx = Math.min(width, height) * 0.42;
+      const milToPx = fovRadiusPx / (wpn.fovMils / 2);
+
+      // Optic Housing
+      ctx.save();
+      ctx.beginPath();
+      if (wpn.reticleType === 'reddot' || wpn.reticleType === 'shotgun') {
+        const boxSize = fovRadiusPx * 1.8;
+        ctx.roundRect(centerX - boxSize/2, centerY - boxSize/2, boxSize, boxSize, 16);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#334155';
+        ctx.stroke();
+      } else {
+        ctx.arc(centerX, centerY, fovRadiusPx, 0, Math.PI * 2);
+        ctx.fillStyle = '#0d131a';
+        ctx.fill();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Clip Inside Optic Window
+      ctx.save();
+      ctx.beginPath();
+      if (wpn.reticleType === 'reddot' || wpn.reticleType === 'shotgun') {
+        const boxSize = fovRadiusPx * 1.75;
+        ctx.roundRect(centerX - boxSize/2, centerY - boxSize/2, boxSize, boxSize, 14);
+      } else {
+        ctx.arc(centerX, centerY, fovRadiusPx - 2, 0, Math.PI * 2);
+      }
+      ctx.clip();
+
+      ctx.fillStyle = (wpn.reticleType === 'reddot' || wpn.reticleType === 'shotgun') ? 'rgba(15, 23, 42, 0.4)' : 'rgba(6, 78, 59, 0.08)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Mil Grid Ticks
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      const tickStepMils = 10;
+      const maxTicks = Math.floor((wpn.fovMils / 2) / tickStepMils);
+
+      for (let i = -maxTicks; i <= maxTicks; i++) {
+        if (i === 0) continue;
+        const tickX = centerX + (i * tickStepMils * milToPx);
+        const tickHeight = (i % 2 === 0) ? 10 : 6;
+
+        ctx.beginPath();
+        ctx.moveTo(tickX, centerY - tickHeight/2);
+        ctx.lineTo(tickX, centerY + tickHeight/2);
+        ctx.stroke();
+      }
+
+      // Weapon Reticle Render
+      if (wpn.reticleType === 'lds') {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 3;
+        const postGap = 15 * milToPx;
+        ctx.beginPath();
+        ctx.moveTo(centerX - fovRadiusPx, centerY);
+        ctx.lineTo(centerX - postGap, centerY);
+        ctx.moveTo(centerX + postGap, centerY);
+        ctx.lineTo(centerX + fovRadiusPx, centerY);
+        ctx.stroke();
+
+      } else if (wpn.reticleType === 'shotgun') {
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 24, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (wpn.reticleType === 'reddot') {
+        ctx.strokeStyle = '#ef4444';
+        ctx.fillStyle = '#ef4444';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(centerX - 35, centerY); ctx.lineTo(centerX + 35, centerY);
+        ctx.moveTo(centerX, centerY - 35); ctx.lineTo(centerX, centerY + 35);
+        ctx.stroke();
+      }
+
+      // Shotgun Pattern Circle Render
+      if (wpn.isShotgun) {
+        const spreadRadiusPx = (parseFloat(data.spreadMils) / 2) * milToPx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, spreadRadiusPx, 0, Math.PI * 2);
+        ctx.fillStyle = (state.rangeMeters <= 50) ? 'rgba(6, 182, 212, 0.12)' : 'rgba(239, 68, 68, 0.08)';
+        ctx.strokeStyle = (state.rangeMeters <= 50) ? 'rgba(6, 182, 212, 0.6)' : 'rgba(239, 68, 68, 0.5)';
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1.5;
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Drone Silhouette & Lead Arrow
+      const dirSign = (state.direction === 'ltr') ? 1 : -1;
+      const leadPx = data.rawMils * milToPx;
+
+      let droneX;
+      if (state.animating) {
+        const sweepSpan = fovRadiusPx * 1.6;
+        const animOffset = (state.animProgress * sweepSpan) - (sweepSpan / 2);
+        droneX = centerX + (animOffset * dirSign);
+      } else {
+        droneX = centerX - (leadPx * dirSign);
+      }
+
+      const droneY = centerY;
+
+      ctx.save();
+      ctx.translate(droneX, droneY);
+      ctx.strokeStyle = '#f59e0b';
+      ctx.fillStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+
+      const dSize = 10;
+      ctx.beginPath();
+      ctx.moveTo(-dSize, -dSize); ctx.lineTo(dSize, dSize);
+      ctx.moveTo(-dSize, dSize); ctx.lineTo(dSize, -dSize);
+      ctx.stroke();
+
+      [[-dSize,-dSize], [dSize,-dSize], [-dSize,dSize], [dSize,dSize]].forEach(([rx, ry]) => {
+        ctx.beginPath(); ctx.arc(rx, ry, 3.5, 0, Math.PI * 2); ctx.stroke();
+      });
+
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+
+      // Lead Vector Line Annotation
+      if (!state.animating) {
+        ctx.save();
+        ctx.strokeStyle = wpn.isShotgun ? '#06b6d4' : '#22c55e';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+
+        ctx.beginPath();
+        ctx.moveTo(droneX, droneY);
+        ctx.lineTo(centerX, centerY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // Simulation Animation Loop
+    let animFrame;
+    function toggleAnimate() {
+      state.animating = !state.animating;
+      const btn = document.getElementById('btn-animate');
+      if (state.animating) {
+        btn.innerText = "Stop Sim";
+        btn.classList.add('active');
+        state.animProgress = 0;
+        runAnimation();
+      } else {
+        btn.innerText = "Simulate Flight";
+        btn.classList.remove('active');
+        cancelAnimationFrame(animFrame);
+        updateCalculations();
+      }
+    }
+
+    function runAnimation() {
+      if (!state.animating) return;
+      state.animProgress += 0.008;
+      if (state.animProgress > 1) state.animProgress = 0;
+      
+      const data = computeLead();
+      drawSightPicture(data);
+      animFrame = requestAnimationFrame(runAnimation);
+    }
+
+    // Clipboard Copy Handler
+    function copyLeadData() {
+      const wpn = weapons[state.weapon];
+      const data = computeLead();
+      const text = `--- C-sUAS ENGAGEMENT DATA ---
+System: ${wpn.name}
+Drone Target: ${state.speedMph} mph @ ${state.rangeMeters}m (${state.angleDeg}° angle)
+------------------------------
+REQUIRED LEAD: ${data.leadMeters} metres (${data.leadMils} Mils / ${data.leadMOA} MOA)
+Time of Flight: ${data.tofMs} ms
+${wpn.isShotgun ? `Shot Spread Pattern: ${data.spreadMeters}m (${data.spreadMils} Mils)` : `Cross-Track Speed: ${data.vPerpMs} m/s`}
+Hold Technique: ${wpn.isShotgun ? 'Swing-Through' : 'Ambush Point-of-Aim'}`;
+
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+
+      const btn = document.getElementById('copy-btn');
+      btn.innerText = "Copied!";
+      setTimeout(() => { btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg> Copy Data`; }, 2000);
+    }
+
+    // Init on Window Load
+    window.onload = function() {
+      updateCalculations();
+    };
+
+    window.onresize = function() {
+      updateCalculations();
+    };
+  </script>
+</body>
+</html>
